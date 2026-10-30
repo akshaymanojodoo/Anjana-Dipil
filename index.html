@@ -137,8 +137,8 @@
   .wish-carousel { text-align: center; }
   .wish-slide { min-height: 230px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: clamp(24px, 5vw, 38px) clamp(18px, 5vw, 42px); background: var(--paper); border: 1px solid #d6bb806b; border-radius: 18px; box-shadow: var(--shadow); }
   .wish-slide[hidden], .wish-nav[hidden], .wish-all[hidden] { display: none; }
-  .wish-slide.swap { animation: wishFade .45s ease; }
-  @keyframes wishFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .wish-slide.swap { animation: wishFade .6s ease; }
+  @keyframes wishFade { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
   .wish-quote { color: var(--gold); font-size: 2.6rem; line-height: .8; font-family: Georgia, serif; }
   .wish-text { margin: 0; color: var(--ink); font-size: clamp(1.1rem, 3.4vw, 1.4rem); font-style: italic; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
   .wish-name { margin-top: 10px; color: var(--maroon); font-size: 1.2rem; font-weight: 400; font-style: italic; overflow-wrap: anywhere; }
@@ -1014,8 +1014,8 @@ function mk(tag, cls, text) {
 function stopWishTimer() { if (wishTimer) { clearInterval(wishTimer); wishTimer = null; } }
 function startWishTimer() {
   stopWishTimer();
-  if (wishData.length < 2 || wishShowAll || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  wishTimer = setInterval(() => { if (!document.hidden) goWish(wishIdx + 1); }, 7000);
+  if (wishData.length < 2 || wishShowAll) return;
+  wishTimer = setInterval(() => { if (!document.hidden) goWish(wishIdx + 1); }, 5000);
 }
 function goWish(i) {
   if (!wishData.length) return;
@@ -1083,9 +1083,12 @@ function renderWishes(wishes) {
     viewAll.setAttribute("aria-expanded", String(wishShowAll));
     wishShowAll ? stopWishTimer() : startWishTimer();
   });
+  // Keep auto-scrolling: pause briefly while a guest hovers or touches, then carry on.
+  let resumeTimer = null;
+  const pauseThenResume = () => { stopWishTimer(); clearTimeout(resumeTimer); resumeTimer = setTimeout(startWishTimer, 6000); };
   wrap.addEventListener("mouseenter", stopWishTimer);
   wrap.addEventListener("mouseleave", startWishTimer);
-  wrap.addEventListener("touchstart", stopWishTimer, { passive: true });
+  wrap.addEventListener("touchstart", pauseThenResume, { passive: true });
 
   slide.hidden = nav.hidden = wishShowAll;
   wrap.append(slide, nav, viewAll, all);
