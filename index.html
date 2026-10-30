@@ -134,6 +134,26 @@
   .wish-field label { color: var(--green); font: 600 .72rem Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
   .wish-field input, .wish-field textarea { width: 100%; padding: 12px; border: 1px solid #d7c7a7; background: #fffefa; color: var(--ink); border-radius: 2px; }
   .wish-field input:focus, .wish-field textarea:focus { outline: 2px solid #b28a4570; border-color: var(--gold); }
+  .wish-carousel { text-align: center; }
+  .wish-slide { min-height: 230px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: clamp(24px, 5vw, 38px) clamp(18px, 5vw, 42px); background: var(--paper); border: 1px solid #d6bb806b; border-radius: 18px; box-shadow: var(--shadow); }
+  .wish-slide[hidden], .wish-nav[hidden], .wish-all[hidden] { display: none; }
+  .wish-slide.swap { animation: wishFade .45s ease; }
+  @keyframes wishFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .wish-quote { color: var(--gold); font-size: 2.6rem; line-height: .8; font-family: Georgia, serif; }
+  .wish-text { margin: 0; color: var(--ink); font-size: clamp(1.1rem, 3.4vw, 1.4rem); font-style: italic; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .wish-name { margin-top: 10px; color: var(--maroon); font-size: 1.2rem; font-weight: 400; font-style: italic; overflow-wrap: anywhere; }
+  .wish-date { color: var(--muted); font: 600 .62rem Arial, sans-serif; letter-spacing: .18em; }
+  .wish-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 18px; }
+  .wish-nav.single .wish-arrow { visibility: hidden; }
+  .wish-arrow { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 50%; border: 1px solid var(--gold-light); background: var(--paper); color: var(--maroon); font-size: 1.6rem; line-height: 1; cursor: pointer; }
+  .wish-arrow:hover { background: #f1e1c2; }
+  .wish-mid { flex: 1; max-width: 300px; display: grid; gap: 8px; justify-items: center; }
+  .wish-count { color: var(--muted); font: 600 .68rem Arial, sans-serif; letter-spacing: .18em; }
+  .wish-progress { width: 100%; height: 3px; background: #e9dcc0; border-radius: 3px; overflow: hidden; }
+  .wish-progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--gold), var(--gold-light)); transition: width .45s ease; }
+  .wish-viewall { margin-top: 18px; background: none; border: 0; border-bottom: 1px solid var(--gold); padding: 4px 0; color: var(--gold); font: 600 .7rem Arial, sans-serif; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; }
+  .wish-all { display: grid; gap: 12px; margin-top: 18px; text-align: left; }
+  @media (prefers-reduced-motion: reduce) { .wish-slide.swap { animation: none; } }
   .wishes-list { max-width: 700px; margin: 28px auto 0; display: grid; gap: 12px; }
   .wish-card { padding: 18px 20px; border-left: 3px solid var(--gold); background: #fffdf8; box-shadow: 0 6px 18px rgba(78,48,27,.06); }
   .wish-card strong { color: var(--maroon); font-weight: 400; font-size: 1.1rem; }
@@ -975,27 +995,103 @@ byId("wishForm").addEventListener("submit", event => {
     .finally(() => { btn.disabled = false; });
 });
 
+let wishData = [];
+let wishIdx = 0;
+let wishShowAll = false;
+let wishTimer = null;
+
+function formatWishDate(value) {
+  const d = new Date(value);
+  if (!value || isNaN(d)) return "";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+}
+function mk(tag, cls, text) {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+function stopWishTimer() { if (wishTimer) { clearInterval(wishTimer); wishTimer = null; } }
+function startWishTimer() {
+  stopWishTimer();
+  if (wishData.length < 2 || wishShowAll || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  wishTimer = setInterval(() => { if (!document.hidden) goWish(wishIdx + 1); }, 7000);
+}
+function goWish(i) {
+  if (!wishData.length) return;
+  wishIdx = (i + wishData.length) % wishData.length;
+  paintWishSlide();
+}
+function paintWishSlide() {
+  const slide = document.querySelector(".wish-slide");
+  if (!slide) return;
+  const w = wishData[wishIdx];
+  slide.querySelector(".wish-text").textContent = w.message;
+  slide.querySelector(".wish-name").textContent = w.name;
+  slide.querySelector(".wish-date").textContent = formatWishDate(w.time);
+  document.querySelector(".wish-count").textContent = (wishIdx + 1) + " / " + wishData.length;
+  document.querySelector(".wish-progress i").style.width = ((wishIdx + 1) / wishData.length * 100) + "%";
+  slide.classList.remove("swap"); void slide.offsetWidth; slide.classList.add("swap");
+}
+
 function renderWishes(wishes) {
+  wishData = Array.isArray(wishes) ? wishes : [];
   const list = byId("wishesList");
   list.replaceChildren();
-  if (!wishes.length) {
-    const empty = document.createElement("p");
-    empty.className = "form-note";
+  stopWishTimer();
+  if (!wishData.length) {
+    const empty = mk("p", "form-note", "Your wishes will appear here. Be the first to leave a message!");
     empty.style.textAlign = "center";
-    empty.textContent = "Your wishes will appear here. Be the first to leave a message!";
     list.appendChild(empty);
     return;
   }
-  wishes.forEach(wish => {
-    const card = document.createElement("article");
-    card.className = "wish-card";
-    const name = document.createElement("strong");
-    name.textContent = wish.name;
-    const message = document.createElement("p");
-    message.textContent = wish.message;
-    card.append(name, message);
-    list.appendChild(card);
+  if (wishIdx >= wishData.length) wishIdx = 0;
+
+  const wrap = mk("div", "wish-carousel");
+  const slide = mk("article", "wish-slide");
+  slide.append(mk("span", "wish-quote", "\u201C"), mk("p", "wish-text"), mk("strong", "wish-name"), mk("span", "wish-date"));
+
+  const nav = mk("div", "wish-nav");
+  const prev = mk("button", "wish-arrow", "\u2039");
+  prev.type = "button"; prev.setAttribute("aria-label", "Previous wish");
+  const next = mk("button", "wish-arrow", "\u203A");
+  next.type = "button"; next.setAttribute("aria-label", "Next wish");
+  const mid = mk("div", "wish-mid");
+  const bar = mk("div", "wish-progress"); bar.appendChild(document.createElement("i"));
+  mid.append(mk("span", "wish-count"), bar);
+  nav.append(prev, mid, next);
+  if (wishData.length < 2) nav.classList.add("single");
+
+  const all = mk("div", "wish-all");
+  all.hidden = !wishShowAll;
+  wishData.forEach(w => {
+    const card = mk("article", "wish-card");
+    card.append(mk("strong", "", w.name), mk("p", "", w.message));
+    all.appendChild(card);
   });
+  const viewAll = mk("button", "wish-viewall", wishShowAll ? "Show one at a time" : "View all " + wishData.length + " wishes");
+  viewAll.type = "button";
+  viewAll.setAttribute("aria-expanded", String(wishShowAll));
+
+  prev.addEventListener("click", () => { goWish(wishIdx - 1); startWishTimer(); });
+  next.addEventListener("click", () => { goWish(wishIdx + 1); startWishTimer(); });
+  viewAll.addEventListener("click", () => {
+    wishShowAll = !wishShowAll;
+    all.hidden = !wishShowAll;
+    slide.hidden = nav.hidden = wishShowAll;
+    viewAll.textContent = wishShowAll ? "Show one at a time" : "View all " + wishData.length + " wishes";
+    viewAll.setAttribute("aria-expanded", String(wishShowAll));
+    wishShowAll ? stopWishTimer() : startWishTimer();
+  });
+  wrap.addEventListener("mouseenter", stopWishTimer);
+  wrap.addEventListener("mouseleave", startWishTimer);
+  wrap.addEventListener("touchstart", stopWishTimer, { passive: true });
+
+  slide.hidden = nav.hidden = wishShowAll;
+  wrap.append(slide, nav, viewAll, all);
+  list.appendChild(wrap);
+  paintWishSlide();
+  startWishTimer();
 }
 renderWishes([]);
 loadWishes();
