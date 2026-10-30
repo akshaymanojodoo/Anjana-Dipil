@@ -8,7 +8,7 @@
 5. Paste that URL into `config.js` as `sheetUrl`.
 6. Test: open the URL in a browser; you should see `{"wishes":[]}`.
 
-Wishes appear in the "Wishes" tab. To hide one from the site, set its Approved column to FALSE.
+Wishes appear in the "Wishes" tab. To hide one from the site, untick its Show checkbox.
 If you edit Code.gs later, use Deploy > Manage deployments > Edit > New version (the URL stays the same).
 
 ## 2. GitHub Pages
