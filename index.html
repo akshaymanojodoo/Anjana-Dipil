@@ -196,6 +196,12 @@
   .closing h2 { font-weight: 400; font-size: clamp(2rem, 6vw, 3.5rem); margin: 10px 0; }
   .closing p { color: #f1dfc5; }
   footer { text-align: center; padding: 34px 20px; background: #51202a; color: #ead9bd; }
+  .music-control .eq { display: inline-flex; align-items: flex-end; gap: 3px; height: 18px; }
+  .music-control .eq i { display: block; width: 3px; background: currentColor; border-radius: 2px; animation: eqBar 0.9s ease-in-out infinite; }
+  .music-control .eq i:nth-child(2) { animation-delay: .2s; }
+  .music-control .eq i:nth-child(3) { animation-delay: .4s; }
+  @keyframes eqBar { 0%, 100% { height: 5px; } 50% { height: 18px; } }
+  @media (prefers-reduced-motion: reduce) { .music-control .eq i { animation: none; height: 12px; } }
   .music-control {
     position: fixed; z-index: 20; right: 18px; bottom: 18px; width: 48px; height: 48px;
     border: 1px solid var(--gold-light); border-radius: 50%; color: white; background: var(--maroon);
@@ -713,7 +719,7 @@
 </footer>
 
 <button class="music-control" id="musicButton" aria-label="Play wedding music" title="Play or pause wedding music" type="button">♫</button>
-<audio id="weddingMusic" loop preload="none">
+<audio id="weddingMusic" loop preload="metadata" playsinline>
   <!-- Replace with a licensed music file, for example: src="assets/wedding-instrumental.mp3" -->
 </audio>
 
@@ -741,7 +747,7 @@ const WEDDING = {
   // Enter your WhatsApp number with country code and digits only if desired.
   whatsappNumber: "",
   // Optional local audio path, e.g. "assets/wedding-instrumental.mp3"
-  musicFile: ""
+  musicFile: "assets/anjana-weds-dipil.mp3"
 };
 /* ========================================================================== */
 
@@ -827,28 +833,39 @@ if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   }
 }
 
-// Optional music: user must click to start playback.
+// Wedding music: guests tap the floating music button to play or pause (works on phones, where autoplay is blocked).
 let musicPlaying = false;
+let musicWasPlaying = false;
+function setMusicUi(playing) {
+  musicPlaying = playing;
+  byId("musicButton").classList.toggle("on", playing);
+  byId("musicButton").innerHTML = playing ? '<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>' : "♫";
+  byId("musicButton").setAttribute("aria-label", playing ? "Pause wedding music" : "Play wedding music");
+}
 byId("musicButton").addEventListener("click", async () => {
   const audio = byId("weddingMusic");
-  if (!audio.src) {
-    alert("To enable music, add a licensed audio file path to WEDDING.musicFile in the script.");
-    return;
-  }
+  if (!audio.src) return;
   try {
     if (musicPlaying) {
       audio.pause();
-      musicPlaying = false;
-      byId("musicButton").textContent = "♫";
-      byId("musicButton").setAttribute("aria-label", "Play wedding music");
+      setMusicUi(false);
     } else {
       await audio.play();
-      musicPlaying = true;
-      byId("musicButton").textContent = "Ⅱ";
-      byId("musicButton").setAttribute("aria-label", "Pause wedding music");
+      setMusicUi(true);
     }
   } catch {
-    alert("Music could not be played. Please check the audio file.");
+    setMusicUi(false);
+  }
+});
+// Pause when the guest switches app or locks the phone, and resume when they come back.
+document.addEventListener("visibilitychange", () => {
+  const audio = byId("weddingMusic");
+  if (document.hidden) {
+    musicWasPlaying = musicPlaying;
+    if (musicPlaying) { audio.pause(); setMusicUi(false); }
+  } else if (musicWasPlaying) {
+    audio.play().then(() => setMusicUi(true)).catch(() => setMusicUi(false));
+    musicWasPlaying = false;
   }
 });
 
@@ -1083,6 +1100,11 @@ const invitationCover = byId("invitationCover");
 const coverOpenButton = byId("openCoverInvitation");
 if (invitationCover && coverOpenButton) {
   const openCover = () => {
+    // The tap on "Open Invitation" counts as a user gesture, so phones allow the music to start here.
+    const music = byId("weddingMusic");
+    if (music && music.src && !musicPlaying) {
+      music.play().then(() => setMusicUi(true)).catch(() => setMusicUi(false));
+    }
     invitationCover.classList.add("leaving");
     document.documentElement.classList.remove("invitation-locked");
     document.body.classList.remove("invitation-locked");
