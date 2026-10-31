@@ -1115,9 +1115,9 @@ function createGoogleCalendarUrl(which) {
   }
   const params = new URLSearchParams({
     text: `Wedding Ceremony — ${WEDDING.bride} & ${WEDDING.groom}`,
-    dates: "20261212T115700/20261212T124300",
-    ctz: "Asia/Kolkata",
-    details: `Wedding Muhurtham: 11:57 AM – 12:43 PM (India Standard Time).\n${directions}`,
+    // 11:57 AM - 12:43 PM IST (UTC+05:30) written in UTC so the link works without a timezone parameter.
+    dates: "20261212T062700Z/20261212T071300Z",
+    details: `Wedding Muhurtham: 11:57 AM to 12:43 PM IST.\n${directions}`,
     location
   });
   return `${base}&${params.toString()}`;
