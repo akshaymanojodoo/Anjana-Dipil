@@ -1101,7 +1101,7 @@ loadWishes();
 setInterval(() => { if (!document.hidden) loadWishes(); }, 60000);
 
 function createGoogleCalendarUrl(which) {
-  const base = "https://calendar.google.com/calendar/render?action=TEMPLATE";
+  const base = "https://www.google.com/calendar/render?action=TEMPLATE";
   const location = WEDDING.locationName;
   const directions = `Directions: ${WEDDING.mapLink}`;
   if (which === "eve") {
